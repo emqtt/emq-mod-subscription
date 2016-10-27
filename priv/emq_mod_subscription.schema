@@ -1,0 +1,20 @@
+%%-*- mode: erlang -*-
+%% emq_mod_subscription config mapping
+
+{mapping, "module.subscription.$id.topic", "emq_mod_subscription.topics", [
+  {datatype, string}
+]}.
+
+{mapping, "module.subscription.$id.qos", "emq_mod_subscription.topics", [
+  {default, 1},
+  {datatype, integer},
+  {validators, ["range:0-2"]}
+]}.
+
+{translation, "emq_mod_subscription.topics", fun(Conf) ->
+  List = cuttlefish_variable:filter_by_prefix("module.subscription", Conf),
+  QosList = [Qos || {_, Qos} <- lists:sort([{I, Qos} || {[_,"subscription", I,"qos"], Qos} <- List])],
+  TopicList = [Topic || {_, Topic} <- lists:sort([{I, Topic} || {[_,"subscription", I, "topic"], Topic} <- List])],
+  lists:zip(TopicList, QosList)
+end}.
+
