@@ -3,7 +3,7 @@ PROJECT_DESCRIPTION = Subscription Management Module
 PROJECT_VERSION = 2.0
 
 BUILD_DEPS = emqttd
-dep_emqttd = git https://github.com/emqtt/emqttd master
+dep_emqttd = git https://github.com/emqtt/emqttd emq20
 
 TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
