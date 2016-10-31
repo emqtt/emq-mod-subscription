@@ -16,17 +16,47 @@
 
 -module(emq_mod_subscription).
 
--behaviour(emqttd_gen_mod).
+-author("Feng Lee <feng@emqtt.io>").
 
 -include_lib("emqttd/include/emqttd.hrl").
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
 
+%% Mnesia Callbacks
+-export([mnesia/1]).
+
+-boot_mnesia({mnesia, [boot]}).
+-copy_mnesia({mnesia, [copy]}).
+
 -export([load/1, on_client_connected/3, unload/0]).
 
+%% Static Subscription API
+-export([add/1, lookup/1, del/1, del/2]).
+
+-define(TAB, ?MODULE).
+
+%%--------------------------------------------------------------------
+%% Mnesia callbacks
+%%--------------------------------------------------------------------
+
+mnesia(boot) ->
+    ok = emqttd_mnesia:create_table(?TAB, [
+                {type, bag},
+                {disc_copies, [node()]},
+                {record_name, mqtt_subscription},
+                {attributes, record_info(fields, mqtt_subscription)},
+                {storage_properties, [{ets, [compressed]},
+                                      {dets, [{auto_save, 5000}]}]}]);
+
+mnesia(copy) ->
+    ok = emqttd_mnesia:copy_table(?TAB).
+
+%%--------------------------------------------------------------------
+%% Load/Unload Hook
+%%--------------------------------------------------------------------
+
 load(Topics) ->
-    Topics1 = [{iolist_to_binary(Topic), QoS} || {Topic, QoS} <- Topics, ?IS_QOS(QoS)],
-    emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [Topics1]).
+    emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [Topics]).
 
 on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId,
                                                            client_pid = ClientPid,
@@ -42,6 +72,56 @@ on_client_connected(_ConnAck, _Client, _State) ->
 
 unload() ->
     emqttd:unhook('client.connected', fun ?MODULE:on_client_connected/3).
+
+%%--------------------------------------------------------------------
+%% Add/Del static subscriptions
+%%--------------------------------------------------------------------
+
+%% @doc Add a static subscription manually.
+-spec(add(mqtt_subscription()) -> ok | {error, already_existed}).
+add(Subscription = #mqtt_subscription{subid = SubId, topic = Topic}) ->
+    Pattern = match_pattern(SubId, Topic),
+    return(mnesia:transaction(fun() ->
+                    case mnesia:match_object(?TAB, Pattern, write) of
+                        [] ->
+                            mnesia:write(?TAB, Subscription, write);
+                        [Subscription] ->
+                            mnesia:abort(already_existed);
+                        [Subscription1] -> %% QoS is different
+                            mnesia:delete_object(?TAB, Subscription1, write),
+                            mnesia:write(?TAB, Subscription, write)
+                    end
+            end)).
+
+%% @doc Lookup static subscription
+-spec(lookup(binary()) -> list(mqtt_subscription())).
+lookup(ClientId) when is_binary(ClientId) ->
+    mnesia:dirty_read(?TAB, ClientId).
+
+%% @doc Delete static subscriptions by ClientId manually.
+-spec(del(binary()) -> ok).
+del(ClientId) when is_binary(ClientId) ->
+    return(mnesia:transaction(fun mnesia:delete/1, [{?TAB, ClientId}])).
+
+%% @doc Delete a static subscription manually.
+-spec(del(binary(), binary()) -> ok).
+del(ClientId, Topic) when is_binary(ClientId) andalso is_binary(Topic) ->
+    return(mnesia:transaction(fun del_/1, [match_pattern(ClientId, Topic)])).
+
+del_(Pattern) ->
+    lists:foreach(fun(Subscription) ->
+                mnesia:delete_object(?TAB, Subscription, write)
+        end, mnesia:match_object(?TAB, Pattern, write)).
+
+match_pattern(SubId, Topic) ->
+    #mqtt_subscription{subid = SubId, topic = Topic, qos = '_'}.
+
+return({atomic, ok})      -> ok;
+return({aborted, Reason}) -> {error, Reason}.
+
+%%--------------------------------------------------------------------
+%% Internal Functions
+%%--------------------------------------------------------------------
 
 rep(<<"%c">>, ClientId, Topic) ->
     emqttd_topic:feed_var(<<"%c">>, ClientId, Topic);

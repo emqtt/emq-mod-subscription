@@ -14,7 +14,13 @@
 {translation, "emq_mod_subscription.topics", fun(Conf) ->
   List = cuttlefish_variable:filter_by_prefix("module.subscription", Conf),
   QosList = [Qos || {_, Qos} <- lists:sort([{I, Qos} || {[_,"subscription", I,"qos"], Qos} <- List])],
-  TopicList = [Topic || {_, Topic} <- lists:sort([{I, Topic} || {[_,"subscription", I, "topic"], Topic} <- List])],
+  TopicList = [iolist_to_binary(Topic) || {_, Topic} <-
+    lists:sort([{I, Topic} || {[_,"subscription", I, "topic"], Topic} <- List])],
   lists:zip(TopicList, QosList)
 end}.
+
+{mapping, "module.subscription.backend", "emq_mod_subscription.backend", [
+  {default, off},
+  {datatype, flag}
+]}.
 

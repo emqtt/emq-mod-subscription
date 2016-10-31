@@ -16,19 +16,29 @@
 
 -module(emq_mod_subscription_app).
 
+-include_lib("emqttd/include/emqttd_protocol.hrl").
+
 -behaviour(application).
 
 -export([start/2, prep_stop/1, stop/1]).
 
+-behaviour(supervisor).
+
+-export([init/1]).
+
+-define(APP, emq_mod_subscription).
+
 start(_Type, _Args) ->
-    {ok, Sup} = emq_mod_subscription_sup:start_link(),
-    Topics = application:get_env(emq_mod_subscription, topics, []),
-    emq_mod_subscription:load(Topics),
-    {ok, Sup}.
+    ?APP:load(application:get_env(?APP, topics, [])),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 prep_stop(State) ->
-    emq_mod_subscription:unload(), State.
+    ?APP:unload(), State.
 
 stop(_State) ->
 	ok.
+
+%% Dummy supervisor
+init([]) ->
+	{ok, {{one_for_one, 1, 5}, []}}.
 
