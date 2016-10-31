@@ -27,8 +27,8 @@ start(_Type, _Args) ->
     {ok, Sup}.
 
 prep_stop(State) ->
-    emq_mod_subscription:unload(), State.
+	Topics = application:get_env(emq_mod_subscription, topics, []),
+    emq_mod_subscription:unload(Topics), State.
 
 stop(_State) ->
 	ok.
-

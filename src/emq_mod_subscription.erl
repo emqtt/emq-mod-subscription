@@ -22,7 +22,7 @@
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
 
--export([load/1, on_client_connected/3, unload/0]).
+-export([load/1, on_client_connected/3, unload/1]).
 
 load(Topics) ->
     Topics1 = [{iolist_to_binary(Topic), QoS} || {Topic, QoS} <- Topics, ?IS_QOS(QoS)],
@@ -40,7 +40,7 @@ on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId
 on_client_connected(_ConnAck, _Client, _State) ->
     ok.
 
-unload() ->
+unload(_) ->
     emqttd:unhook('client.connected', fun ?MODULE:on_client_connected/3).
 
 rep(<<"%c">>, ClientId, Topic) ->
