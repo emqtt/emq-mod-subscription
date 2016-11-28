@@ -19,8 +19,3 @@
   lists:zip(TopicList, QosList)
 end}.
 
-{mapping, "module.subscription.backend", "emq_mod_subscription.backend", [
-  {default, off},
-  {datatype, flag}
-]}.
-
