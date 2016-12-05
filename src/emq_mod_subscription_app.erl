@@ -33,8 +33,8 @@ start(_Type, _Args) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_State) ->
-    ?APP:unload(), 
-	ok.
+    ?APP:unload(),
+    ok.
 
 %% Dummy supervisor
 init([]) ->
