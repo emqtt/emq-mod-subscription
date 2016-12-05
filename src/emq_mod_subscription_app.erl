@@ -20,7 +20,7 @@
 
 -behaviour(application).
 
--export([start/2, prep_stop/1, stop/1]).
+-export([start/2, stop/1]).
 
 -behaviour(supervisor).
 
@@ -32,11 +32,9 @@ start(_Type, _Args) ->
     ?APP:load(application:get_env(?APP, topics, [])),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-prep_stop(State) ->
-    ?APP:unload(), State.
-
 stop(_State) ->
-	ok.
+    ?APP:unload(),
+    ok.
 
 %% Dummy supervisor
 init([]) ->
