@@ -2,10 +2,8 @@ PROJECT = emq_mod_subscription
 PROJECT_DESCRIPTION = Subscription Management Module
 PROJECT_VERSION = 2.0.5
 
-BUILD_DEPS = emqttd
+BUILD_DEPS = emqttd cuttlefish
 dep_emqttd = git https://github.com/emqtt/emqttd master
-
-TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/emqtt/cuttlefish
 
 ERLC_OPTS += +'{parse_transform, lager_transform}'
