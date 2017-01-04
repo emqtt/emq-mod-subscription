@@ -38,10 +38,11 @@ on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId
                                                            username   = Username}, Topics) ->
 
     Replace = fun(Topic) -> rep(<<"%u">>, Username, rep(<<"%c">>, ClientId, Topic)) end,
-    %%TopicTable = [{Replace(Topic), Qos} || {Topic, Qos} <- Topics],
+    TopicTable = [{Replace(Topic), Qos} || {Topic, Qos} <- Topics],
 	{ok, Redis} = eredis:start_link(),
-	TopicTable = eredis:q(Redis, ["sMembers", "mqtt_sub:"++Username]),
     emqttd_client:subscribe(ClientPid, TopicTable),
+	OurTopics = eredis:q(Redis, ["sMembers", "mqtt_sub:"++Username]),
+	emqttd_client:subscribe(ClientPid, OurTopics),
     {ok, Client};
 
 on_client_connected(_ConnAck, _Client, _State) ->
