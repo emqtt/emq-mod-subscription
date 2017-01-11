@@ -1,6 +1,6 @@
 PROJECT = emq_mod_subscription
 PROJECT_DESCRIPTION = Subscription Management Module
-PROJECT_VERSION = 2.0.1
+PROJECT_VERSION = 2.0.7
 
 BUILD_DEPS = emqttd cuttlefish
 dep_emqttd = git https://github.com/emqtt/emqttd emq20
