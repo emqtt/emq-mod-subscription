@@ -42,8 +42,8 @@ on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId
 	{ok, Redis} = eredis:start_link(),
     emqttd_client:subscribe(ClientPid, TopicTable),
 	OurTopics = eredis:q(Redis, ["sMembers", "mqtt_sub:"++Username]),
-	lists:foreach(fun(Topic) ->
-                  emqttd:subscribe(ClientId,Topic)).
+	lists:foreach(fun(OurTopics) ->
+                  emqttd:subscribe(ClientId,OurTopics)).
 	%%emqttd_client:subscribe(ClientPid, OurTopics),
     {ok, Client};
 
