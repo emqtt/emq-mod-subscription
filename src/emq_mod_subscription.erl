@@ -22,7 +22,7 @@
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
 
--export([load/1, on_client_connected/3, unload/0]).
+-export([load/1, on_client_connected/3, unload/0,listSubscriber/4]).
 
 -define(TAB, ?MODULE).
 
@@ -40,6 +40,12 @@ on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId
     Replace = fun(Topic) -> rep(<<"%u">>, Username, rep(<<"%c">>, ClientId, Topic)) end,
     TopicTable = [{Replace(Topic), Qos} || {Topic, Qos} <- Topics],
     emqttd_client:subscribe(ClientPid, TopicTable),
+	
+	{ok, Redis} = eredis:start_link(),
+	OurTopics = eredis:q(Redis, ["sMembers", "mqtt_sub:"++Username]),
+	OutTopicsLen = length(OurTopics),
+	listSubscriber(OutTopicsLen, OurTopics, ClientId, 2),
+	
     {ok, Client};
 
 on_client_connected(_ConnAck, _Client, _State) ->
@@ -52,10 +58,17 @@ unload() ->
 %% Internal Functions
 %%--------------------------------------------------------------------
 
+listSubscriber(N, Lists, ClientId, Qos) when N > 0 ->
+	SubIt = lists:nth(0, Lists),
+	emqttd:subscribe(SubIt,ClientId, Qos),
+	listSubscriber(N-1, Lists, ClientId, Qos);
+listSubscriber(0,Lists, ClientId, Qos) ->
+	SubIt = lists:nth(0, Lists),
+	emqttd:subscribe(SubIt,ClientId, Qos).
+
 rep(<<"%c">>, ClientId, Topic) ->
     emqttd_topic:feed_var(<<"%c">>, ClientId, Topic);
 rep(<<"%u">>, undefined, Topic) ->
     Topic;
 rep(<<"%u">>, Username, Topic) ->
     emqttd_topic:feed_var(<<"%u">>, Username, Topic).
-
