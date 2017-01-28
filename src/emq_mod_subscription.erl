@@ -22,7 +22,7 @@
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
 
--export([load/1, on_client_connected/3, unload/0]).
+-export([load/1, on_client_connected/3, unload/0, listSubscriber/4]).
 
 -define(TAB, ?MODULE).
 
@@ -41,9 +41,11 @@ on_client_connected(?CONNACK_ACCEPT, Client = #mqtt_client{client_id  = ClientId
     TopicTable = [{Replace(Topic), Qos} || {Topic, Qos} <- Topics],
 	{ok, Redis} = eredis:start_link(),
     emqttd_client:subscribe(ClientPid, TopicTable),
+	
 	OurTopics = eredis:q(Redis, ["sMembers", "mqtt_sub:"++Username]),
-	lists:foreach(fun(OurTopics) ->
-                  emqttd:subscribe(ClientId,OurTopics)).
+	OutTopicsLen = length(OurTopics),
+	listSubscriber(OutTopicsLen, OurTopics, ClientId, 2),
+	
 	%%emqttd_client:subscribe(ClientPid, OurTopics),
     {ok, Client};
 
@@ -57,10 +59,19 @@ unload() ->
 %% Internal Functions
 %%--------------------------------------------------------------------
 
+%%cd("C:/UsersRminEclipseErlangLearningErlangProjectsrc/").
+
+listSubscriber(N, Lists, ClientId, Qos) when N > 0 ->
+	SubIt = lists:nth(0, Lists),
+	emqttd:subscribe(SubIt,ClientId, Qos),
+	listSubscriber(N-1, Lists, ClientId, Qos);
+listSubscriber(0,Lists, ClientId, Qos) ->
+	SubIt = lists:nth(0, Lists),
+	emqttd:subscribe(SubIt,ClientId, Qos).
+
 rep(<<"%c">>, ClientId, Topic) ->
     emqttd_topic:feed_var(<<"%c">>, ClientId, Topic);
 rep(<<"%u">>, undefined, Topic) ->
     Topic;
 rep(<<"%u">>, Username, Topic) ->
     emqttd_topic:feed_var(<<"%u">>, Username, Topic).
-
