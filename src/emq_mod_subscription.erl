@@ -22,7 +22,7 @@
 
 -include_lib("emqttd/include/emqttd_protocol.hrl").
 
--export([load/1, on_client_connected/3, unload/0,listSubscriber/4]).
+-export([load/1, on_client_connected/3, unload/0]).
 
 -define(TAB, ?MODULE).
 
@@ -57,14 +57,6 @@ unload() ->
 %%--------------------------------------------------------------------
 %% Internal Functions
 %%--------------------------------------------------------------------
-
-listSubscriber(N, Lists, ClientId, Qos) when N > 0 ->
-	SubIt = lists:nth(0, Lists),
-	emqttd:subscribe(SubIt,ClientId, Qos),
-	listSubscriber(N-1, Lists, ClientId, Qos);
-listSubscriber(0,Lists, ClientId, Qos) ->
-	SubIt = lists:nth(0, Lists),
-	emqttd:subscribe(SubIt,ClientId, Qos).
 
 rep(<<"%c">>, ClientId, Topic) ->
     emqttd_topic:feed_var(<<"%c">>, ClientId, Topic);
